@@ -345,7 +345,21 @@ def validate_agent_credentials(
         )
         all_credentials.append(status)
 
-        if available and verify and spec.health_check_endpoint:
+        # Stale Aden-only credential: locally cached but ADEN_API_KEY is
+        # missing, so the token cannot be refreshed.  Mark invalid so the
+        # frontend shows "Reauthorize" instead of "Connected".
+        if (
+            available
+            and not has_aden_key
+            and spec.aden_supported
+            and not spec.direct_api_key_supported
+        ):
+            status.valid = False
+            status.validation_message = (
+                "Aden API key is missing — connect your Aden Platform key to refresh this token."
+            )
+
+        if available and verify and spec.health_check_endpoint and status.valid is not False:
             to_verify.append(len(all_credentials) - 1)
 
     # Check tool credentials

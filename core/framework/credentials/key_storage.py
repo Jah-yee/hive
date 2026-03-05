@@ -95,7 +95,11 @@ def generate_and_save_credential_key() -> str:
 
 
 def load_aden_api_key() -> str | None:
-    """Load ADEN_API_KEY with priority: env > encrypted store > shell config.
+    """Load ADEN_API_KEY with priority: encrypted store > env > shell config.
+
+    The encrypted store is the canonical source of truth because the web UI
+    saves new keys there.  An inherited ``os.environ`` value may be stale
+    (e.g. from a previous terminal session), so the store takes precedence.
 
     **Must** be called after ``load_credential_key()`` because the encrypted
     store depends on HIVE_CREDENTIAL_KEY.
@@ -103,15 +107,15 @@ def load_aden_api_key() -> str | None:
     Sets ``os.environ["ADEN_API_KEY"]`` as a side-effect when found.
     Returns the key string, or ``None`` if unavailable everywhere.
     """
-    # 1. Already in environment
-    key = os.environ.get(ADEN_ENV_VAR)
-    if key:
-        return key
-
-    # 2. Encrypted credential store
+    # 1. Encrypted credential store (canonical — written by the web UI)
     key = _read_aden_from_encrypted_store()
     if key:
         os.environ[ADEN_ENV_VAR] = key
+        return key
+
+    # 2. Already in environment (set by parent process, CI, etc.)
+    key = os.environ.get(ADEN_ENV_VAR)
+    if key:
         return key
 
     # 3. Shell config fallback (backward compat)
