@@ -756,6 +756,7 @@ class EventLoopNode(NodeProtocol):
             )
             _stream_retry_count = 0
             _turn_cancelled = False
+            turn_tokens = {}  # Initialize to avoid UnboundLocalError on early break
             while True:
                 try:
                     (
